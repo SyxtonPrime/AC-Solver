@@ -22,58 +22,51 @@ def concatenate_relators(presentation, max_relator_length, i, j, sign, lengths):
     resultant_presentation is the presentation with r_i possibly replaced with r_i r_j^{sign}.
     lengths_of_resultant_presentations is the list of lengths of words in the resultant presentation.
     """
-    assert all(
-        [
-            i in [0, 1],
-            j in [0, 1],
-            i == 1 - j,
-        ]
-    ), f"expect i and j to be 0 or 1 and i != j; got i = {i}, j = {j}"
 
-    assert sign in [1, -1], f"expect sign to be +1 or -1, received {sign}"
+    len1 = lengths[i]
+    len2 = lengths[j]
 
     # get r_i
-    presentation = presentation.copy()
-    relator1 = presentation[i * max_relator_length : (i + 1) * max_relator_length]
+    index1 = i * max_relator_length + len1 - 1
 
     # get r_j or r_j^{-1} depending on sign
-    # TODO: really need to understand this
     if sign == 1:
-        relator2 = presentation[j * max_relator_length : (j + 1) * max_relator_length]
-    elif j:
-        relator2 = -presentation[
-            (j + 1) * max_relator_length - 1 : j * max_relator_length - 1 : -1
-        ]
+        index2 = j * max_relator_length
     else:
-        relator2 = -presentation[max_relator_length - 1 :: -1]
-
-    relator1_nonzero = relator1[relator1 != 0]
-    relator2_nonzero = relator2[relator2 != 0]
-
-    len1 = len(relator1_nonzero)
-    len2 = len(relator2_nonzero)
+        index2 = j * max_relator_length + len2 - 1   
 
     acc = 0
     while (
-        acc < min(len1, len2) and relator1_nonzero[-1 - acc] == -relator2_nonzero[acc]
+        acc < min(len1, len2) and presentation[index1 - acc] == -sign*presentation[index2 + sign*acc]
     ):
         acc += 1
 
     new_size = len1 + len2 - 2 * acc
 
+    new_state = False
+
     if new_size <= max_relator_length:
+        new_state = True
+        presentation = presentation.copy()
+        lengths = lengths.copy()
         lengths[i] = new_size
-        presentation[i * max_relator_length : i * max_relator_length + len1 - acc] = (
-            relator1_nonzero[: len1 - acc]
-        )
-        presentation[
-            i * max_relator_length + len1 - acc : i * max_relator_length + new_size
-        ] = relator2_nonzero[acc:]
+        if sign == 1:
+            presentation[
+                index1 + 1 - acc : i * max_relator_length + new_size
+            ] = presentation[index2 + acc: index2 + len2]
+        elif sign == -1 and j == 1:
+            presentation[
+                index1 + 1 - acc : i * max_relator_length + new_size
+            ] = -presentation[index2 - acc : max_relator_length - 1: -1]
+        elif sign == -1 and j == 0 and acc != len2:
+            presentation[
+                index1 + 1 - acc : i * max_relator_length + new_size
+            ] = -presentation[index2 - acc :: -1]
         presentation[
             i * max_relator_length + new_size : (i + 1) * max_relator_length
         ] = 0
 
-    return presentation, lengths
+    return presentation, lengths, new_state
 
 
 def conjugate(presentation, max_relator_length, i, j, sign, lengths):
@@ -99,16 +92,8 @@ def conjugate(presentation, max_relator_length, i, j, sign, lengths):
 
     """
     # TODO: perhaps i and j should be more uniformly both in [0, 1].
-    assert all(
-        [i in [0, 1], j in [1, 2]]
-    ), f"expect i to be 0 and 1 and j to be 1 or 2; got i = {i}, j = {j}"
 
-    assert sign in [1, -1], f"expect sign to be +1 or -1, received {sign}"
-
-    presentation = presentation.copy()
-    relator = presentation[i * max_relator_length : (i + 1) * max_relator_length]
-    relator_nonzero = relator[relator.nonzero()]
-    relator_size = len(relator_nonzero)
+    relator_size = lengths[i]
 
     # get the generator that is to be appended on the left
     generator = sign * j
@@ -116,14 +101,17 @@ def conjugate(presentation, max_relator_length, i, j, sign, lengths):
     # TODO: again here, it will be good to use simplify_relator
 
     # check whether we will need to cancel any generators at the beginning and at the end
-    start_cancel = 1 if relator_nonzero[0] == -generator else 0
-    end_cancel = 1 if relator_nonzero[-1] == generator else 0
+    start_cancel = 1 if presentation[i*max_relator_length] == -generator else 0
+    end_cancel = 1 if presentation[i*max_relator_length + relator_size - 1] == generator else 0
 
     # get the size of the resultant relator after cancellation
     new_size = relator_size + 2 - 2 * (start_cancel + end_cancel)
 
     # update lengths and presentation
+    new_state = False
     if new_size <= max_relator_length:
+        new_state = True
+        presentation = presentation.copy()
         lengths = lengths.copy()
         lengths[i] = new_size
 
@@ -135,7 +123,7 @@ def conjugate(presentation, max_relator_length, i, j, sign, lengths):
             + relator_size
             - 2 * start_cancel
             - end_cancel
-        ] = relator_nonzero[start_cancel : relator_size - end_cancel]
+        ] = presentation[i * max_relator_length + start_cancel : i * max_relator_length + relator_size - end_cancel]
 
         if not start_cancel:
             presentation[i * max_relator_length] = generator
@@ -153,7 +141,7 @@ def conjugate(presentation, max_relator_length, i, j, sign, lengths):
                 + 2
             ] = 0
 
-    return presentation, lengths
+    return presentation, lengths, new_state
 
 
 def ACMove(move_id, presentation, max_relator_length, lengths, cyclical=True):
@@ -163,8 +151,8 @@ def ACMove(move_id, presentation, max_relator_length, lengths, cyclical=True):
 
     Parameters:
     move_id: An int in range [0, 11] (both inclusive), deciding which AC move to apply.
-            Odd values affect r_1; even values affect r_0.
-            The complete mappling between move_id and moves is as below:
+            Even values affect r_1; odd values affect r_0.
+            The complete mapping between move_id and moves is as below:
             0. r_1 --> r_1 r_0
             1. r_0 --> r_0 r_1^{-1}
             2. r_1 --> r_1 r_0^{-1}
@@ -185,27 +173,35 @@ def ACMove(move_id, presentation, max_relator_length, lengths, cyclical=True):
     cyclical: A bool; whether to cyclically reduce words in the resultant presentation or not.
     """
 
-    assert move_id in range(
-        0, 12
-    ), f"Expect n to be in range 0-11 (both inclusive); got {move_id}"
-
     if move_id in range(0, 4):
-        move_id += 1
-        i = move_id % 2
-        j = 1 - i
-        sign_parity = ((move_id - i) // 2) % 2
-        sign = (-1) ** sign_parity
         move = concatenate_relators
+
+        j = move_id % 2
+        i = 1 - j
+        # Slightly weird formula but we can check that on the four possible inputs it computes the right function.
+        # id, i, j, -> sign:
+        # (0, 1, 0) -> 1
+        # (1, 0, 1) -> -1
+        # (2, 1, 0) -> -1
+        # (3, 0, 1) -> 1
+        # Think this might be slightly faster than the previous approach involving // 2, % 2 and (-1)**.
+        sign = move_id - 2*j + i*(1 - 2*move_id)
+
+        
     elif move_id in range(4, 12):
-        move_id += 1
-        i = move_id % 2
-        jp = ((move_id - i) // 2) % 2  # = 0 or 1
-        sign_parity = ((move_id - i - 2 * jp) // 4) % 2
-        j = jp + 1  # = 1 or 2
-        sign = (-1) ** sign_parity
         move = conjugate
 
-    presentation, lengths = move(
+        # Add one so move_id lies in 5-12
+        move_id = move_id + 1
+        i = move_id % 2
+        j = 1 + ((move_id) // 2) % 2
+        sign_parity = ((move_id) // 4)
+        sign = (-1) ** sign_parity
+        
+    else:
+        raise Exception(f"Expect move_id to be in range 0-11 (both inclusive); got {move_id}")
+
+    presentation, lengths, new_state = move(
         presentation=presentation,
         max_relator_length=max_relator_length,
         i=i,
@@ -221,11 +217,12 @@ def ACMove(move_id, presentation, max_relator_length, lengths, cyclical=True):
     # already do the cyclical=False simplification.
 
     # TODO: cyclical should probably be called cylically_reduce.
-    presentation, lengths = simplify_presentation(
-        presentation=presentation,
-        max_relator_length=max_relator_length,
-        lengths_of_words=lengths,
-        cyclical=cyclical,
-    )
+    if new_state and cyclical:
+        presentation, lengths = simplify_presentation(
+            presentation=presentation,
+            max_relator_length=max_relator_length,
+            lengths_of_words=lengths,
+            cyclical=cyclical,
+        )
 
-    return presentation, lengths
+    return presentation, lengths, new_state
