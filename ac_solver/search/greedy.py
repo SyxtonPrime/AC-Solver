@@ -132,6 +132,7 @@ if __name__ == "__main__":
             f"""
               Presentation {presentation} solved!
               Path length: {len(path)}
+              Path: {path} 
               """
         )
         print("Checking whether this path actually leads to a trivial state..")

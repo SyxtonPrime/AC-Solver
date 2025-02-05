@@ -1,6 +1,7 @@
 scratch.ipynb
 wandb/
 dist/
+env/
 *.txt
 *.pt
 ac_solver/agents/checkpoints/
