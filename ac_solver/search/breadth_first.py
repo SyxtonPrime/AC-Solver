@@ -6,8 +6,11 @@ Trivialize Akbulut-Kirby series n=2 case "AK(2)" through BFS as
 python breadth_first.py
 """
 
+import sys
 import numpy as np
 from collections import deque
+
+sys.path.insert(0, "C:\\Users\\this_\\Documents\\GitHub\\AC-Solver")
 from ac_solver.envs.utils import is_array_valid_presentation, is_presentation_trivial
 from ac_solver.envs.ac_moves import ACMove
 
@@ -67,7 +70,7 @@ def bfs(
         ]
 
         for action in range(0, 12):
-            new_state, new_word_lengths = ACMove(
+            new_state, new_word_lengths, _ = ACMove(
                 move_id=action,
                 presentation=state,
                 max_relator_length=max_relator_length,
@@ -99,9 +102,10 @@ def bfs(
 
 if __name__ == "__main__":
 
-    presentation = np.array([1, 1, -2, -2, -2, 0, 0, 1, 2, 1, -2, -1, -2, 0])  # AK(2)
+    # presentation = np.array([1, 1, -2, -2, -2, 0, 0, 1, 2, 1, -2, -1, -2, 0])  # AK(2)
+    presentation = np.array([-1, 2, 2, 2, 2, 1, -2, -2, -2, -2, -2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1, -2, -2, -2, -2, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
-    ans, path = bfs(presentation=presentation, max_nodes_to_explore=int(1e6))
+    ans, path = bfs(presentation=presentation, max_nodes_to_explore=int(1e7))
 
     if path:
         print(
@@ -111,13 +115,16 @@ if __name__ == "__main__":
               """
         )
         print("Checking whether this path actually leads to a trivial state..")
-        word_lengths = [5, 6]
+        max_relator_length = len(presentation) // 2
+        first_word_length = np.count_nonzero(presentation[:max_relator_length])
+        second_word_length = np.count_nonzero(presentation[max_relator_length:])
+        word_lengths = [first_word_length, second_word_length]
 
         for action, _ in path[1:]:
             presentation, word_lengths = ACMove(
                 move_id=action,
                 presentation=presentation,
-                max_relator_length=7,
+                max_relator_length=max_relator_length,
                 lengths=word_lengths,
                 cyclical=False,
             )
