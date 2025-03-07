@@ -6,8 +6,11 @@ Trivialize Akbulut-Kirby series n=2 case "AK(2)" through greedy search as
 python greedy.py
 """
 
+import sys
 import numpy as np
 import heapq
+
+sys.path.insert(0, "C:\\Users\\this_\\Documents\\GitHub\\AC-Solver")
 from ac_solver.envs.utils import is_presentation_trivial
 from ac_solver.envs.ac_moves import ACMove
 
@@ -74,7 +77,7 @@ def greedy_search(
         word_lengths = list(word_lengths)
 
         for action in range(0, 12):
-            new_state, new_lengths = ACMove(
+            new_state, new_lengths, _ = ACMove(
                 action,
                 state,
                 max_relator_length,
@@ -139,7 +142,7 @@ if __name__ == "__main__":
         word_lengths = [5, 6]
 
         for action, _ in path[1:]:
-            presentation, word_lengths = ACMove(
+            presentation, word_lengths, _ = ACMove(
                 move_id=action,
                 presentation=presentation,
                 max_relator_length=7,
