@@ -196,7 +196,7 @@ if __name__ == "__main__":
     presentation = np.array([-1, 2, 2, 2, 1, -2, -2, -2, -2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 2, 1, -2, -1, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
     # presentation = np.array([-1, 2, 1, -2, -2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 2, 2, 1, 2, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
-    ans, path = greedy_search(presentation=presentation, max_nodes_to_explore=int(1e7), n=3)
+    ans, path = greedy_search(presentation=presentation, max_nodes_to_explore=int(1e7), n=1)
 
     if path:
         print(

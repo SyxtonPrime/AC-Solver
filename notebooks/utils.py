@@ -11,8 +11,8 @@ one_hot_single = {-2: [0, -1], -1: [-1, 0], 0: [0, 0], 1: [1, 0], 2: [0, 1]}
 # We pad the output to length outlen.
 def to_one_hot(presentation: np.typing.NDArray[np.int32], out_len: int) -> np.typing.NDArray[np.int32]:
     relator_len = len(presentation) // 2
-    first_relator = [one_hot_single(presentation[x]) for x in range(0, relator_len)] + [[0, 0]] * (out_len - relator_len)
-    second_relator = [one_hot_single(presentation[x + relator_len]) for x in range(0, relator_len)] + [[0, 0]] * (out_len - relator_len)
+    first_relator = [one_hot_single[presentation[x]] for x in range(0, relator_len)] + [[0, 0]] * (out_len - relator_len)
+    second_relator = [one_hot_single[presentation[x + relator_len]] for x in range(0, relator_len)] + [[0, 0]] * (out_len - relator_len)
 
     relator_pair = np.array(first_relator + second_relator, dtype=np.float32)
     return relator_pair.flatten()
